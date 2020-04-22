@@ -1,12 +1,16 @@
 import matplotlib
+from pytracking.utils.config import ON_COLAB
 
-matplotlib.use('TkAgg')
+matplotlib.use('agg' if ON_COLAB else 'TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2 as cv
 import time
 import os
 import numpy as np
+
+if ON_COLAB:
+    from google.colab.patches import cv2_imshow
 
 
 class BaseTracker:
@@ -56,6 +60,12 @@ class BaseTracker:
 
         return tracked_bb, times
 
+    def imshow(self, display_name, frame, **kwargs):
+        if ON_COLAB:
+            cv2_imshow(frame, **kwargs)
+        else:
+            cv.imshow(display_name, frame, **kwargs)
+
     def track_videofile(self, videofilepath, optional_box=None):
         """Run track with a video file input."""
 
@@ -67,15 +77,16 @@ class BaseTracker:
 
         cap = cv.VideoCapture(videofilepath)
         display_name = 'Display: ' + self.params.tracker_name
-        cv.namedWindow(display_name, cv.WINDOW_NORMAL | cv.WINDOW_KEEPRATIO)
-        cv.resizeWindow(display_name, 960, 720)
+        if not ON_COLAB:
+            cv.namedWindow(display_name, cv.WINDOW_NORMAL | cv.WINDOW_KEEPRATIO)
+            cv.resizeWindow(display_name, 960, 720)
         success, frame = cap.read()
-        cv.imshow(display_name, frame)
+        self.imshow(display_name, frame)
         if success is not True:
             print("Read frame from {} failed.".format(videofilepath))
             exit(-1)
         if optional_box is not None:
-            assert isinstance(optional_box, list, tuple)
+            assert isinstance(optional_box, (list, tuple))
             assert len(optional_box) == 4, "valid box's foramt is [x,y,w,h]"
             self.initialize(frame, optional_box)
         else:
@@ -114,7 +125,7 @@ class BaseTracker:
                        font_color, 1)
 
             # Display the resulting frame
-            cv.imshow(display_name, frame_disp)
+            self.imshow(display_name, frame_disp)
             key = cv.waitKey(1)
             if key == ord('q'):
                 break
@@ -125,7 +136,7 @@ class BaseTracker:
                 cv.putText(frame_disp, 'Select target ROI and press ENTER', (20, 30), cv.FONT_HERSHEY_COMPLEX_SMALL, 1.5,
                            (0, 0, 0), 1)
 
-                cv.imshow(display_name, frame_disp)
+                self.imshow(display_name, frame_disp)
                 x, y, w, h = cv.selectROI(display_name, frame_disp, fromCenter=False)
                 init_state = [x, y, w, h]
                 self.initialize(frame, init_state)
@@ -173,9 +184,10 @@ class BaseTracker:
         ui_control = UIControl()
         cap = cv.VideoCapture(0)
         display_name = 'Display: ' + self.params.tracker_name
-        cv.namedWindow(display_name, cv.WINDOW_NORMAL | cv.WINDOW_KEEPRATIO)
-        cv.resizeWindow(display_name, 960, 720)
-        cv.setMouseCallback(display_name, ui_control.mouse_callback)
+        if not ON_COLAB:
+            cv.namedWindow(display_name, cv.WINDOW_NORMAL | cv.WINDOW_KEEPRATIO)
+            cv.resizeWindow(display_name, 960, 720)
+            cv.setMouseCallback(display_name, ui_control.mouse_callback)
 
         if hasattr(self, 'initialize_features'):
             self.initialize_features()
@@ -213,7 +225,7 @@ class BaseTracker:
                 cv.putText(frame_disp, 'Press q to quit', (20, 80), cv.FONT_HERSHEY_COMPLEX_SMALL, 1,
                            font_color, 1)
             # Display the resulting frame
-            cv.imshow(display_name, frame_disp)
+            self.imshow(display_name, frame_disp)
             key = cv.waitKey(1)
             if key == ord('q'):
                 break
@@ -222,7 +234,8 @@ class BaseTracker:
 
         # When everything done, release the capture
         cap.release()
-        cv.destroyAllWindows()
+        if not ON_COLAB:
+            cv.destroyAllWindows()
 
     def reset_tracker(self):
         pass
