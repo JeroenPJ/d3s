@@ -1,3 +1,3 @@
 import sys
 
-IN_COLAB = 'google.colab' in sys.modules
+ON_COLAB = 'google.colab' in sys.modules
