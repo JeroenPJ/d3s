@@ -19,6 +19,8 @@ from ltr import load_network
 from pytracking.bbox_fit import fit_bbox_to_mask
 from pytracking.mask_to_disk import save_mask
 
+import segmentation_models_pytorch as smp
+
 
 class Segm(BaseTracker):
     def initialize_features(self):
@@ -798,9 +800,10 @@ class Segm(BaseTracker):
                                                                       output_sz=self.params.segm_output_sz, pad_val=0)
 
         # network was renamed therefore we need to specify constructor_module and constructor_fun_name
-        segm_net, _ = load_network(self.params.segm_net_path, backbone_pretrained=False,
-                                   constructor_module='ltr.models.segm.segm',
-                                   constructor_fun_name='segm_resnet50')
+        # segm_net, _ = load_network(self.params.segm_net_path, backbone_pretrained=False,
+        #                            constructor_module='ltr.models.segm.segm',
+        #                            constructor_fun_name='segm_resnet50')
+        segm_net = smp.Unet('resnet50')
 
         if self.params.use_gpu:
             segm_net.cuda()
